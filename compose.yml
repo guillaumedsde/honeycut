@@ -1,0 +1,44 @@
+services:
+  mock-couic:
+    # More recent version have bug: https://github.com/stoplightio/prism/issues/2763
+    image: stoplight/prism:5.14.3@sha256:fab47aee53c3007facd5d23e7957b1fc312b30dddad27bf570c2cb4a51c5f959
+    command:
+      - "mock"
+      - "https://raw.githubusercontent.com/FCSC-FR/couic/refs/heads/main/website/static/json/openapi.json"
+      - "--host=0.0.0.0"
+      - "--port=4010"
+  mock-couic-socket:
+    image: alpine/socat:1.8.0.3@sha256:ca728ccb1eabd4850ee9063d50e1899a0171bdd9002f7a4126f2925578331063
+    volumes:
+      - type: volume
+        source: couic-socket
+        target: /var/run
+    command:
+      - UNIX-LISTEN:/var/run/couic.sock,fork
+      - TCP:mock-couic:4010
+  honeycut:
+    image: golang:1.26-alpine
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./main.go
+          target: /src/main.go
+          initial_sync: true
+    volumes:
+      - type: volume
+        source: couic-socket
+        target: /var/run
+    ports:
+      - host_ip: "127.0.0.1"
+        published: 8080
+        target: 8080
+        protocol: tcp
+    environment:
+      BACKEND_SOCKET_PATH: /var/run/couic.sock
+      COUIC_API_TOKEN: placeholder
+    command:
+      - go
+      - run
+      - /src/main.go
+volumes:
+  couic-socket:
