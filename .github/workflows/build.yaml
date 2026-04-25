@@ -1,0 +1,31 @@
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+env:
+  SOURCE_DATE_EPOCH: "0"
+
+jobs:
+  build:
+    uses: docker/github-builder/.github/workflows/build.yml@7d2a02426d4b989616ba5aaee4e879afd4134b0d # v1.6.0
+    permissions:
+      contents: read # to fetch the repository content
+      id-token: write # for signing attestation(s) with GitHub OIDC Token
+      packages: write # to publish Docker image to GHCR #FIXME
+    with:
+      output: image
+      push: ${{ github.event_name != 'pull_request' }}
+      platforms: linux/amd64
+      cache: true
+      cache-mode: "max"
+      meta-images: ghcr.io/${{ github.repository }}
+      meta-tags: |
+        type=ref,event=branch
+        type=ref,event=pr
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
