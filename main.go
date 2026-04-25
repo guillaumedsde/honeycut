@@ -26,11 +26,12 @@ type Server struct {
 	socketPath       string
 	authToken        string
 	realIpHeaderName *string
+	dryRun           bool
 	client           *http.Client
 }
 
 // NewServer creates a new server instance with initialized HTTP client
-func NewServer(socketPath, authToken string, realIpHeaderName *string) (*Server, error) {
+func NewServer(socketPath, authToken string, realIpHeaderName *string, dryRun bool) (*Server, error) {
 	if socketPath == "" {
 		return nil, fmt.Errorf("socket path cannot be empty")
 	}
@@ -53,6 +54,7 @@ func NewServer(socketPath, authToken string, realIpHeaderName *string) (*Server,
 		socketPath:       socketPath,
 		authToken:        authToken,
 		realIpHeaderName: realIpHeaderName,
+		dryRun:           dryRun,
 		client: &http.Client{
 			Transport: transport,
 			Timeout:   10 * time.Second,
@@ -79,6 +81,12 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		clientIP = host
+	}
+
+	if s.dryRun {
+		log.Printf("Dry run mode enabled, IP %s would be blocked otherwise", clientIP)
+		http.NotFound(w, r)
+		return
 	}
 
 	// 2. Prepare the POST request to /v1/drop with JSON body
@@ -157,8 +165,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	dryRunStr := os.Getenv("DRY_RUN")
+	if dryRunStr == "" {
+		dryRunStr = "true"
+	}
+
+	dryRun, err := strconv.ParseBool(dryRunStr)
+	if err != nil {
+		log.Printf("Error: DRY_RUN must be a valid boolean, got '%s'", dryRunStr)
+		os.Exit(1)
+	}
+
 	// Create server instance with shared configuration
-	server, err := NewServer(socketPath, authToken, &realIpHeaderName)
+	server, err := NewServer(socketPath, authToken, &realIpHeaderName, dryRun)
 	if err != nil {
 		log.Printf("Failed to initialize server: %v", err)
 		os.Exit(1)
