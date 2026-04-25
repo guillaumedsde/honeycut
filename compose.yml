@@ -34,7 +34,7 @@ services:
         target: 8080
         protocol: tcp
     environment:
-      BACKEND_SOCKET_PATH: /var/run/couic.sock
+      COUIC_SOCKET_PATH: /var/run/couic.sock
       COUIC_API_TOKEN: placeholder
     command:
       - go
