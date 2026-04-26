@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -122,9 +123,20 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Added IP %s to list of IPs for which to drop packets", clientIP)
-
 	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v", err)
+		http.NotFound(w, r)
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Couic API error, status %d %s, body: %s", resp.StatusCode, resp.Status, string(bodyBytes))
+	} else {
+		log.Printf("Added IP %s to list of IPs for which to drop packets", clientIP)
+	}
 
 	http.NotFound(w, r)
 }
