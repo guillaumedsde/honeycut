@@ -5,12 +5,17 @@ Honeycut is an HTTP server that operates like a honeypot: the client IP of any H
 > [!IMPORTANT]  
 > This is still unreleased software, use with caution
 
-Honeycut's intended use case is banning web crawlers which commonly send web requests with a [TLS SNI][sni]
+Honeycut's intended use case is banning web crawlers which commonly send web requests with a [TLS Server Name Indicator (SNI)][sni]
 and/or an [HTTP host header][host-header] not matching any service hosted by the target webserver.
 As such, Honeycut was built to be run behind a reverse proxy which routes requests to Honeycut if no other routing rules match.
 
+Similarly, web crawlers often use the [Certificate Transperency][ct] log for finding hosts to crawl.
+Request TLS certificates from a public Certificate Authority targeting improbable subdomains alongside legitimate ones
+and routing them to Honeycut is another possible use case for banning crawlers.
+
 [sni]: https://fr.wikipedia.org/wiki/Server_Name_Indication
 [host-header]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Host
+[ct]: https://en.wikipedia.org/wiki/Certificate_Transparency
 
 ## ⚙️ Configuration
 
