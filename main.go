@@ -117,8 +117,8 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. Execute the request using pre-initialized client
 	resp, err := s.client.Do(backendReq)
 	if err != nil {
-		fmt.Printf("Error communicating with backend socket: %v", err)
-		http.Error(w, "Backend communication failed", http.StatusBadGateway)
+		log.Printf("Error communicating with backend socket: %v", err)
+		http.NotFound(w, r)
 		return
 	}
 	defer resp.Body.Close()
