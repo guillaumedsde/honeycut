@@ -2,6 +2,9 @@
 
 Honeycut is an HTTP server that operates sort of like a honeypot: the client IP of any HTTP request it receives is banned using [Couic](https://couic.net/).
 
+> [!IMPORTANT]  
+> This is still unreleased software, use with caution
+
 ## ⚙️ Configuration
 
 | Environment variable  | Required | Default value | Description                                                                                                                      |
