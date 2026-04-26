@@ -147,15 +147,14 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		http.NotFound(w, r)
-		return
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Couic API error, status %d %s, body: %s", resp.StatusCode, resp.Status, string(bodyBytes))
+	if resp.StatusCode != http.StatusCreated {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Error reading response body: %v", err)
+			http.NotFound(w, r)
+			return
+		}
+		log.Printf("Couic API error, status %s, body: %s", resp.Status, string(bodyBytes))
 	} else {
 		log.Printf("Added IP %s to list of IPs for which to drop packets", clientIP)
 	}
