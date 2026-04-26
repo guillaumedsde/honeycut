@@ -25,13 +25,13 @@ type EntryRequest struct {
 type Server struct {
 	socketPath       string
 	authToken        string
-	realIpHeaderName *string
+	realIpHeaderName string
 	dryRun           bool
 	client           *http.Client
 }
 
 // NewServer creates a new server instance with initialized HTTP client
-func NewServer(socketPath, authToken string, realIpHeaderName *string, dryRun bool) (*Server, error) {
+func NewServer(socketPath, authToken string, realIpHeaderName string, dryRun bool) (*Server, error) {
 	if socketPath == "" {
 		return nil, fmt.Errorf("socket path cannot be empty")
 	}
@@ -66,10 +66,10 @@ func NewServer(socketPath, authToken string, realIpHeaderName *string, dryRun bo
 func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract client IP
 	var clientIP string
-	if *s.realIpHeaderName != "" {
-		clientIP = r.Header.Get(*s.realIpHeaderName)
+	if s.realIpHeaderName != "" {
+		clientIP = r.Header.Get(s.realIpHeaderName)
 		if clientIP == "" {
-			log.Printf("No IP header %s found in request, not blocking any IP", *s.realIpHeaderName)
+			log.Printf("No IP header %s found in request, not blocking any IP", s.realIpHeaderName)
 			http.NotFound(w, r)
 			return
 		}
@@ -182,7 +182,7 @@ func main() {
 	}
 
 	// Create server instance with shared configuration
-	server, err := NewServer(socketPath, authToken, &realIpHeaderName, dryRun)
+	server, err := NewServer(socketPath, authToken, realIpHeaderName, dryRun)
 	if err != nil {
 		log.Printf("Failed to initialize server: %v", err)
 		os.Exit(1)
