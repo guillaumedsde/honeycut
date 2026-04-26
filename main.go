@@ -63,6 +63,21 @@ func NewServer(socketPath, authToken string, realIpHeaderName string, dryRun boo
 	}, nil
 }
 
+func ipToSingleHostCIDR(ipStr string) (string, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP address: %s", ipStr)
+	}
+
+	// Determine prefix length based on IP version
+	prefixLen := 32
+	if ip.To4() == nil {
+		prefixLen = 128 // IPv6
+	}
+
+	return fmt.Sprintf("%s/%d", ip.String(), prefixLen), nil
+}
+
 // Catch-all handler
 func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract client IP
@@ -90,9 +105,16 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clientIpCidr, err := ipToSingleHostCIDR(clientIP)
+	if err != nil {
+		log.Printf("Failed to parse IP: %v", err)
+		http.NotFound(w, r)
+		return
+	}
+
 	// 2. Prepare the POST request to /v1/drop with JSON body
 	entryReq := EntryRequest{
-		Cidr:       clientIP,
+		Cidr:       clientIpCidr,
 		Expiration: 0, // 0 = never expire
 	}
 
