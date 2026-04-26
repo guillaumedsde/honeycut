@@ -24,15 +24,16 @@ type EntryRequest struct {
 
 // Server holds shared configuration and HTTP client
 type Server struct {
-	socketPath       string
-	authToken        string
-	realIpHeaderName string
-	dryRun           bool
-	client           *http.Client
+	socketPath         string
+	authToken          string
+	realIpHeaderName   string
+	dryRun             bool
+	banDurationSeconds int
+	client             *http.Client
 }
 
 // NewServer creates a new server instance with initialized HTTP client
-func NewServer(socketPath, authToken string, realIpHeaderName string, dryRun bool) (*Server, error) {
+func NewServer(socketPath, authToken string, realIpHeaderName string, dryRun bool, banDurationSeconds int) (*Server, error) {
 	if socketPath == "" {
 		return nil, fmt.Errorf("socket path cannot be empty")
 	}
@@ -52,10 +53,11 @@ func NewServer(socketPath, authToken string, realIpHeaderName string, dryRun boo
 	}
 
 	return &Server{
-		socketPath:       socketPath,
-		authToken:        authToken,
-		realIpHeaderName: realIpHeaderName,
-		dryRun:           dryRun,
+		socketPath:         socketPath,
+		authToken:          authToken,
+		realIpHeaderName:   realIpHeaderName,
+		dryRun:             dryRun,
+		banDurationSeconds: banDurationSeconds,
 		client: &http.Client{
 			Transport: transport,
 			Timeout:   10 * time.Second,
@@ -112,10 +114,12 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	banUntil := time.Now().Add(time.Duration(s.banDurationSeconds) * time.Second)
+
 	// 2. Prepare the POST request to /v1/drop with JSON body
 	entryReq := EntryRequest{
 		Cidr:       clientIpCidr,
-		Expiration: 0, // 0 = never expire
+		Expiration: banUntil.Unix(),
 	}
 
 	jsonBody, err := json.Marshal(entryReq)
@@ -189,14 +193,22 @@ func main() {
 		log.Println("Info: REAL_IP_HEADER_NAME environment variable is not set, defaulting to client reading address from request")
 	}
 
-	// Listen configuration with defaults
+	banDurationSecondsStr := os.Getenv("BAN_DURATION_SECONDS")
+	if banDurationSecondsStr == "" {
+		banDurationSecondsStr = "86400" // 24h
+	}
+	banDurationSeconds, err := strconv.Atoi(banDurationSecondsStr)
+	if err != nil {
+		log.Printf("Error: BAN_DURATION_SECONDS must be a valid integer, got '%s'", banDurationSecondsStr)
+		os.Exit(1)
+	}
+
 	listenHost := os.Getenv("LISTEN_HOST")
 
 	listenPortStr := os.Getenv("LISTEN_PORT")
 	if listenPortStr == "" {
 		listenPortStr = "8080"
 	}
-
 	listenPort, err := strconv.Atoi(listenPortStr)
 	if err != nil {
 		log.Printf("Error: LISTEN_PORT must be a valid integer, got '%s'", listenPortStr)
@@ -215,7 +227,7 @@ func main() {
 	}
 
 	// Create server instance with shared configuration
-	server, err := NewServer(socketPath, authToken, realIpHeaderName, dryRun)
+	server, err := NewServer(socketPath, authToken, realIpHeaderName, dryRun, banDurationSeconds)
 	if err != nil {
 		log.Printf("Failed to initialize server: %v", err)
 		os.Exit(1)
