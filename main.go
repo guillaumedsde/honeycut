@@ -89,8 +89,6 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Adding IP %s to list of IPs for which to drop packets", clientIP)
-
 	// 2. Prepare the POST request to /v1/drop with JSON body
 	entryReq := EntryRequest{
 		Cidr:       clientIP,
@@ -99,13 +97,15 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 
 	jsonBody, err := json.Marshal(entryReq)
 	if err != nil {
-		http.Error(w, "Failed to marshal request body", http.StatusInternalServerError)
+		log.Printf("Failed to marshal request body: %v", err)
+		http.NotFound(w, r)
 		return
 	}
 
 	backendReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, "http://fakehost/v1/drop", bytes.NewReader(jsonBody))
 	if err != nil {
-		http.Error(w, "Failed to create backend request", http.StatusInternalServerError)
+		log.Printf("Failed to create backend request: %v", err)
+		http.NotFound(w, r)
 		return
 	}
 
@@ -121,6 +121,9 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+
+	log.Printf("Added IP %s to list of IPs for which to drop packets", clientIP)
+
 	defer resp.Body.Close()
 
 	http.NotFound(w, r)
