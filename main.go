@@ -89,6 +89,8 @@ func (s *Server) mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Adding IP %s to list of IPs for which to drop packets", clientIP)
+
 	// 2. Prepare the POST request to /v1/drop with JSON body
 	entryReq := EntryRequest{
 		Cidr:       clientIP,
