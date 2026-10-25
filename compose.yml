@@ -17,7 +17,7 @@ services:
       - UNIX-LISTEN:/var/run/couic.sock,fork
       - TCP:mock-couic:4010
   honeycut:
-    image: golang:1.26-alpine
+    image: golang:1.27-alpine
     develop:
       watch:
         - action: sync+restart
